@@ -1,78 +1,68 @@
-# R & Data Science Portfolio
+#Data Analysis Project
 
-This repository contains a collection of data analysis projects completed in R. These projects showcase a range of skills in statistical modeling, data visualization, and custom algorithm implementation, reflecting a strong foundation in data science principles.
+This repository contains my final exam project for the R programming and statistical analysis course. The exam consists of five sections covering vector operations, user-defined functions, data visualization, and distribution analysis using base R. Each section demonstrates practical application of statistical methods on synthetic and real datasets.
 
-1. Predictive Hotel Pricing Model
- File: Take_Home_Analysis.html
+## Overview
 
-Project Overview: This project involved developing a multiple linear regression model to predict hotel prices based on customer-rated factors like comfort, amenities, and value for money. The analysis identified key drivers of pricing and provided a predictive tool for business decision-making.
+This project contains a complete R-based statistical analysis conducted as part of a final exam exercise. It is divided into **five sections**, each covering different foundational topics in R programming and statistical data analysis. The `.Rmd` file includes code, inline outputs, and visualizations, and is rendered into HTML for submission and documentation purposes.
 
-Key Skills:
+All work is performed in **base R**, and no additional libraries are used unless otherwise stated.
 
-Statistical Modeling: Built and validated a regression model, interpreting coefficients to understand their impact on pricing.
+## File Structure
 
-Hypothesis Testing: Conducted t-tests and F-tests to assess the statistical significance of model parameters and overall model fit.
+- `Final_Exam_Analysis.Rmd` - Source R Markdown file containing all code, explanations, and outputs
+- `Final_Exam_Analysis.html` - Rendered HTML version of the analysis
 
-Data Visualization: Created scatter plots, residual plots, and Q-Q plots using ggplot2 to diagnose model assumptions and visualize relationships.
+## Sections Breakdown
 
-Tools: R, RMarkdown, ggplot2, dplyr
+### Section 1: Vector Manipulations (8 points)
+- Constructs a custom vector with mixed elements (sequences, repetitions, arithmetic sum)
+- Performs sorting, vector addition with descending sequences, subsetting
+- Reconstructs vectors and computes the final sum
 
-2. Recidivism Survival Analysis
- File: Data_Analysis_roy_deblina.html
+### Section 2: Trigonometric Function and Plotting (10 points)
+- Defines and applies a trigonometric function:  
+  `y = sin(x) + cos(x/2)`
+- Computes the value of `x` corresponding to the maximum `y`
+- Visualizes the function using base R plotting and annotates the maximum point
 
-Project Overview: Conducted a survival analysis to investigate the socio-economic factors influencing the time until a former prisoner is rearrested.
+### Section 3: Function Intersection (8 points)
+- Compares two functions:  
+  `y1 = cos(x/2) * sin(x/2)` and `y2 = -(x/2)^3`
+- Detects the closest point of intersection numerically
+- Plots both functions and highlights the intersection point with labels
 
-Key Skills:
+### Section 4: Trees Dataset Analysis (12 points)
+- Uses the built-in `trees` dataset
+- Computes median values and subsets data using logical indexing
+- Converts diameter to radius and calculates area
+- Displays:
+  - Stem-and-leaf plot
+  - Histogram of radii
+  - Scatterplot of area vs radius
+  - Notched boxplot of area
+- Identifies if the largest tree is an extreme outlier using the 3×IQR rule
 
-Survival Analysis: Implemented Kaplan-Meier analysis and Cox proportional-hazards models to analyze time-to-event data.
+### Section 5: Distribution Comparisons (12 points)
+- Generates:
+  - Normal data sample using `rnorm()`
+  - Exponential data sample using `rexp()`
+- Computes interquartile range (IQR) for both distributions
+- Visualizes distributions with:
+  - Histograms
+  - Boxplots
+  - QQ plots
+- Checks for extreme outliers using `boxplot.stats(..., coef = 3)`
 
-Statistical Inference: Interpreted hazard ratios to identify key predictors of recidivism, such as financial aid and the number of prior convictions.
+# Learning Objectives
 
-Data Manipulation: Utilized dplyr for data cleaning, filtering, and preparation for survival analysis.
+- Practice data manipulation, transformation, and subsetting in R
+- Work with user-defined functions and apply them to sequences
+- Gain proficiency in base R plotting techniques
+- Analyze and visualize real-world datasets
+- Compare statistical properties of different distributions
 
-Tools: R, RMarkdown, survival, survminer, dplyr
+# Acknowledgements
 
-3. Sustainable Lobster Harvest Strategy
- File: Data_Analysis_2-1.html
-
-Project Overview: Analyzed lobster catch data to develop a sustainable harvesting strategy based on carapace length.
-
-Key Skills:
-
-Logistic Regression: Modeled the probability of a lobster being mature based on its size to establish a scientific basis for minimum catch size.
-
-Decision Science: Evaluated the trade-offs between yield, revenue, and population sustainability by simulating different harvesting cutoff points.
-
-Data Storytelling: Presented a clear, data-driven recommendation to stakeholders, balancing economic and ecological goals.
-
-Tools: R, RMarkdown, ggplot2, dplyr
-
-4. Foundational R Programming and Analysis
- File: R_Assignment_1a-1.html
-
-Project Overview: This project covered fundamental R programming concepts, including vector and data frame manipulation, creating user-defined functions, and generating plots with base R graphics.
-
-Key Skills:
-
-Vector Manipulation: Created, sorted, and performed arithmetic operations on vectors.
-
-Function Definition: Wrote a custom function to implement a trigonometric expression.
-
-Plotting: Generated plots of functions, identified maxima, and added custom annotations.
-
-Tools: R (Base), RMarkdown
-
-5. Chi-Squared Test Implementation from Scratch
- File: R_Assignment_2a-1.html
-
-Project Overview: Wrote a custom R function to perform a Chi-Squared test for independence on a two-way contingency table, demonstrating a deep understanding of the underlying statistical theory.
-
-Key Skills:
-
-Statistical Programming: Implemented the Chi-Squared statistic, calculated degrees of freedom, and determined the p-value without relying on built-in R functions.
-
-Algorithm Development: Translated a core statistical formula into functional, reusable R code.
-
-Function Design: Created a robust function with clear inputs and outputs.
-
-Tools: R, RMarkdown
+- Dataset: `trees` — built-in R dataset on black cherry trees
+- Developed as part of coursework at Northwestern University (Data Science program)
