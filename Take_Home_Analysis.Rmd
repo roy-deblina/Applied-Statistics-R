@@ -1,0 +1,543 @@
+---
+title: "Take Home Final Exam"
+author: "roy_deblina"
+date: "2025-06-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# install.packages("GGally")
+# install.packages("corrplot")
+# install.packages("ggcorrplot")
+# install.packages("car")        # For VIF
+# install.packages("MASS")       # For stepwise regression
+
+library(tidyverse)
+library(GGally)
+library(corrplot)
+library(ggcorrplot)
+library(skimr)
+
+```
+
+## This Take Home Final Exam presents a comprehensive data analysis using statistical inference and visualization techniques to explore relationships and patterns within hotel-related data. The analysis scheme follows the format requested in the exam question.
+-------
+
+1. Descriptive Statistics: Do an Exploratory Data Analysis (EDA) and provide appropriate summary statistics and data visualizations to understand the various types of hotels. You are to consider such things as existence of the features (which hotels has which feature and which hotels do not), distribution of ratings, and average room price. Investigate (without using hypothesis testing) if there is any difference across cities, regions, metros, or non-metros. The overall goal is to understand the Overall Rating according to various types of hotels with different facilities. Also note that not all hotels have the exact same number of ratings given to it. Give a description of what you have learned from this EDA.
+
+
+```{r test 1.1}
+getwd()
+
+# Load the dataset
+hotel_data <- readxl::read_excel("Hotel_Data_Final_Exam.xlsx")
+
+# Basic structure and summary
+str(hotel_data)
+summary(hotel_data)
+skim(hotel_data)  # Detailed overview
+
+# Check for NA values
+colSums(is.na(hotel_data))
+
+# Count hotels per city and Metro status
+table(hotel_data$City)
+table(hotel_data$Metro)
+
+```
+
+
+```{r test 1.2}
+# FEATURE ANALYSIS 
+# Define the list of features
+feature_columns <- c("air conditioning", "fan", "shower", "free toiletries", 
+                     "towels", "toilet paper", "daily housekeeping", 
+                     "ironing service", "laundry")
+
+# Summarize how many hotels have each feature
+feature_summary <- hotel_data %>%
+  select(all_of(feature_columns)) %>%
+  summarise_all(~ sum(. == 1, na.rm = TRUE))
+
+print("Number of Hotels with Each Feature:")
+print(feature_summary)
+
+```
+
+## Including Plots
+
+```{r, fig.width=8, fig.height=5}
+# DISTRIBUTION OF RATINGS 
+# Histogram of Overall Ratings
+ggplot(hotel_data, aes(x = `Overall Rating`)) +
+  geom_histogram(binwidth = 0.5, fill = "skyblue", color = "black") +
+  labs(title = "Distribution of Overall Ratings", x = "Overall Rating", y = "Number of Hotels")
+
+# Boxplot of Overall Ratings by Metro/Non-Metro
+ggplot(hotel_data, aes(x = Metro, y = `Overall Rating`, fill = Metro)) +
+  geom_boxplot() +
+  labs(title = "Overall Ratings by Metro Status", x = "Metro", y = "Overall Rating")
+
+```
+
+```{r, fig.width=8, fig.height=5}
+# ROOM PRICE ANALYSIS
+# Histogram of Average Room Price
+names(hotel_data)
+# Histogram of Average Room Price
+ggplot(hotel_data, aes(x = `Average Room Price`)) +
+  geom_histogram(binwidth = 500, fill = "orange", color = "black") +
+  labs(
+    title = "Distribution of Average Room Price",
+    x = "Room Price (INR)",
+    y = "Number of Hotels"
+  )
+
+# Boxplot comparing Average Room Price by Metro status
+ggplot(hotel_data, aes(x = Metro, y = `Average Room Price`, fill = Metro)) +
+  geom_boxplot() +
+  labs(
+    title = "Room Price by Metro/Non-Metro",
+    x = "Metro Status",
+    y = "Room Price (INR)"
+  )
+```
+
+
+```{r, fig.width=8, fig.height=5}
+# RELATIONSHIP BETWEEN FEATURES AND RATINGS
+# Count number of features each hotel has
+hotel_data$Feature_Count <- rowSums(hotel_data[feature_columns] == 1, na.rm = TRUE)
+
+# Plot: Number of Features vs Overall Rating
+ggplot(hotel_data, aes(x = Feature_Count, y = `Overall Rating`)) +
+  geom_jitter(alpha = 0.4) +
+  geom_smooth(method = "lm", color = "blue") +
+  labs(title = "Feature Count vs Overall Rating", x = "Number of Features", y = "Overall Rating")
+
+```
+
+```{r}
+# DIFFERENCE BY CITY 
+top_cities <- hotel_data %>%
+  group_by(City) %>%
+  summarise(Count = n()) %>%
+  top_n(10, Count) %>%
+  pull(City)
+
+hotel_data %>%
+  filter(City %in% top_cities) %>%
+  ggplot(aes(x = City, y = `Overall Rating`, fill = City)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Overall Rating in Top 10 Cities", x = "City", y = "Overall Rating")
+
+```
+
+
+
+
+## Answer:  From the EDA analysis
+
+Overall, the dataset includes over 3,000 hotels across India with details on location, features, pricing, and customer ratings. Most hotels offer common amenities like free Wi-Fi and parking, while premium facilities such as pools, gyms, and spas are less common. The distribution of Overall Ratings is left-skewed, showing that most hotels are rated favorably, typically between 7 and 9 out of 10. Average room prices are right-skewed—many hotels are budget-friendly, but a few luxury hotels charge significantly more, pulling the mean upward. Metro hotels tend to charge higher prices than non-metro ones, but both achieve similar overall ratings, suggesting that customer satisfaction is not limited to major cities. Among cities, Cochin and Udaipur show higher median ratings, while Mumbai and Kolkata display more variability. Feature count appears to have minimal influence on ratings, implying that more amenities don’t always mean better reviews. Lastly, some rating categories like “Comfort” or “Cleanliness” are missing for several hotels, indicating uneven review coverage. Overall, the EDA suggests that location and pricing play key roles in market segmentation, while service quality remains high across hotel types.
+
+-----
+
+2. Correlation: Compute a correlation matrix using all continuous variables in the data set. It is acceptable to use the Heat Matrix and attempt to group variables together into subsets. If you have not already done so, you should obtain scatterplots to check on the appropriateness of the correlation computations. Present your results, discuss your findings, make a conjecture as to the best variable(s) for predictive purposes when focusing on the response variables of Average Room Price or Overall Rating.  Comment on the most important relationships.
+
+
+```{r correlation-analysis, message=FALSE, warning=FALSE, fig.width=7, fig.height=6, fig.show='hold'}
+
+# packages already loaded
+library(tidyverse)
+library(GGally)
+library(corrplot)
+library(ggcorrplot)
+
+# Keep all numeric columns for use in scatterplot matrix
+numeric_vars <- hotel_data %>%
+  select(where(is.numeric))
+
+# Create cleaned version (no missing values) for correlation matrix
+continuous_vars <- numeric_vars %>% 
+  drop_na()
+
+# Compute correlation matrix
+cor_matrix <- cor(continuous_vars, use = "complete.obs")
+
+# Show correlation matrix values (Commented out to avoid "long-list of numbers")
+#print(round(cor_matrix, 2))
+
+                                            
+```
+
+```{r, fig.width=12, fig.height=6}
+
+# Correlation heatmap
+corrplot(cor_matrix, method = "color", type = "upper", tl.cex = 0.8,
+         tl.col = "black", addCoef.col = "black", number.cex = 0.7,
+         col = colorRampPalette(c("blue", "white", "red"))(200),
+         title = "Correlation Matrix of Continuous Variables", mar = c(0, 0, 1, 0))
+
+# Heatmap
+heatmap(cor_matrix, symm = TRUE, main = "Heatmap of Correlations")
+
+# Custom correlation display function for ggpairs (2 decimal places)
+my_custom_cor <- function(data, mapping, ...) {
+  x <- eval_data_col(data, mapping$x)
+  y <- eval_data_col(data, mapping$y)
+  corr <- cor(x, y, use = "complete.obs")
+  corr_label <- sprintf("%.2f", corr)
+  ggally_text(label = corr_label, mapping = aes(), ...)
+}
+
+# Scatterplot matrix with rounded correlations
+ggpairs(numeric_vars[, c("Average Room Price", "Overall Rating", "Comfort",
+                         "Location", "Value for Money", "Cleanliness", "Staff", 
+                         "Distance from Center", "Number of Ratings")],
+        upper = list(continuous = my_custom_cor),
+        diag = list(continuous = wrap("densityDiag")),
+        lower = list(continuous = wrap("points", alpha = 0.3)),
+        title = "Scatterplot Matrix of Key Continuous Variables")
+
+```
+
+
+
+
+##Answer 2: From the correlation matrix and the scatterplot matrix, several insights emerged:
+
+
+Highly Correlated Variables:
+	
+- Comfort, Cleanliness, Staff, and Value for Money show very strong positive correlations with Overall Rating (all > 0.9).
+	
+- These variables also correlate strongly with each other, suggesting that hotels rated well in one area tend to be rated well in others too.
+	
+Predictors of Average Room Price:
+	
+- Average Room Price shows moderate positive correlations with Cleanliness (0.31), Comfort (0.32), and Location (0.28).
+	
+- These suggest that better-rated, more comfortable, and well-located hotels tend to charge higher prices.
+	
+Distance from City Center:
+	
+- This has a weak negative correlation with most ratings and features, implying that more central hotels generally score better.
+	
+Best Predictors:
+	
+- For predicting Overall Rating, the best variables are Comfort, Cleanliness, and Value for Money.
+	
+- For predicting Average Room Price, the most useful predictors are Comfort, Cleanliness, Location, and Number of Ratings.
+
+These findings can help guide regression modeling and marketing strategy—focusing on improving customer comfort and cleanliness ratings may simultaneously improve both satisfaction and price justifiability.
+
+*** 
+
+3. Contingency Tables: Pick a set of 4 binary or categorical variables. Find out whether these variables are independent.  Present your results and discuss your findings.
+
+```{r, message=FALSE}
+# Load package
+library(gmodels)
+
+# Four pairs of binary/categorical variables
+pairs <- list(
+  c("air conditioning", "non-smoking rooms"),
+  c("room service", "daily housekeeping"),
+  c("24-hour front desk", "family rooms"),
+  c("flat-screen tv", "luggage storage")
+)
+
+# Loop through pairs
+for (pair in pairs) {
+  var1 <- pair[1]
+  var2 <- pair[2]
+  
+  cat("\n=======================================================\n")
+  cat(paste("Analyzing:", var1, "vs", var2, "\n"))
+  
+  # Create contingency table
+  tbl <- table(hotel_data[[var1]], hotel_data[[var2]])
+  
+  # Print contingency table
+  print(tbl)
+  
+  # Fisher's Exact Test
+  fisher_res <- fisher.test(tbl)
+  cat("\nFisher's Exact Test Results:\n")
+  print(fisher_res)
+  
+  # CrossTable for detailed summary
+  cat("\nCrossTable Output:\n")
+  CrossTable(hotel_data[[var1]], hotel_data[[var2]], 
+             prop.chisq = FALSE, prop.t = FALSE, prop.r = TRUE, prop.c = TRUE)
+  
+  # Mosaic plot
+  mosaicplot(tbl, main = paste("Mosaic Plot:", var1, "vs", var2),
+             shade = TRUE, color = TRUE, las = 1)
+}
+```
+
+
+
+##Answer 3: Contingency Table Analysis Summary
+
+In this analysis, relationships between four pairs of binary hotel features were examined to determine whether they are statistically independent.For that Fisher’s Exact Test used due to the binary nature of the data and supported our findings with mosaic plots to visually explore associations.
+
+ 1. Air Conditioning vs Non-Smoking Rooms
+ 
+	-	p-value = 1.094e-07 → highly significant
+	
+	- Odds Ratio = 2.23 → moderately strong positive association
+	
+	Mosaic Plot shows:
+	
+	- Blue (negative residual) in (AC=0, NonSmoking=0) → fewer hotels without both
+	
+	- Red (positive residual) in (AC=1, NonSmoking=1) → more hotels with both
+	
+So, it's not independent, strong co-occurrence of features
+
+
+2. Room Service vs Daily Housekeeping
+
+  - p-value < 2.2e-16 - extremely significant
+ 
+	- Odds Ratio = 2.16 - strong association
+	
+		Mosaic Plot shows:
+		
+	- Red in (RS=1, DH=1) and Blue in (RS=0, DH=0) → clear positive association
+		
+So, it's not independent, these services often come bundled
+
+
+3. 24-Hour Front Desk vs Family Rooms
+
+	-	p-value = 6.646e-07 - highly significant
+	
+	-	Odds Ratio = 1.76 - moderate association
+	
+	Mosaic Plot shows:
+	
+	- Light red and light blue residuals → moderate but significant pattern
+	
+So, it's not independent, hotels with 24-hour desks tend to support families
+
+
+4. Flat-Screen TV vs Luggage Storage
+
+	-	p-value < 2.2e-16 - extremely significant
+	
+	-	Odds Ratio = 3.42 - very strong association
+	
+	Mosaic Plot shows:
+	
+	-	Strong red (overrepresentation) and blue (underrepresentation) cells
+	
+	-	Strong standardized residuals indicate this is the strongest association
+	
+	So, it's not independent, these two features often occur together, likely indicating a higher-tier amenity package
+
+
+Across all four pairs of hotel features, the results of Fisher’s Exact Tests revealed statistically significant associations (p < 0.05), indicating that none of the feature pairs are independent. This consistently points to a pattern of co-occurrence among certain amenities, suggesting that hotels often bundle services together — either to enhance the overall guest experience or to reflect a specific tier of service offerings.
+
+The mosaic plots provided compelling visual evidence to support these statistical findings. Through the use of standardized residuals, they highlighted exactly where the observed frequencies diverge from what we would expect under the assumption of independence. Residuals with strong color intensity (deep blue or red) indicate where the strongest associations lie, helping to visually confirm and interpret the statistical outcomes.
+
+Overall, this analysis emphasizes that the presence of one amenity in a hotel is often a strong predictor of the presence of another, especially in the case of features like flat-screen TVs and luggage storage, which show the most pronounced association.
+
+-----
+
+4. Inferential Statistics: Pick any two cities with at least 100 hotels. Compare average room price and average Overall Ratings in these two cities. You should use both hypothesis tests and confidence intervals in your analysis.  What is your conclusion? 
+
+```{r}
+
+# Check cities with at least 100 hotels
+library(dplyr)
+
+city_counts <- hotel_data %>%
+  group_by(City) %>%
+  summarise(Hotel_Count = n()) %>%
+  filter(Hotel_Count >= 100)
+
+print(city_counts)
+
+# Choose two cities with at least 100 hotels 
+city1 <- "Mumbai"
+city2 <- "Delhi"
+
+# Filter the data
+data_city1 <- hotel_data %>% filter(City == city1)
+data_city2 <- hotel_data %>% filter(City == city2)
+
+# Welch's t-test for Room Price
+room_price_test <- t.test(data_city1$`Average Room Price`,
+                          data_city2$`Average Room Price`,
+                          var.equal = FALSE, conf.level = 0.95)
+
+# Welch's t-test for Overall Rating
+rating_test <- t.test(data_city1$`Overall Rating`,
+                      data_city2$`Overall Rating`,
+                      var.equal = FALSE, conf.level = 0.95)
+
+# Show results
+cat("== Room Price Comparison Between", city1, "and", city2, "==\n")
+print(room_price_test)
+
+cat("\n== Overall Rating Comparison Between", city1, "and", city2, "==\n")
+print(rating_test)
+```
+##Answer 4: Inferential Statistics Analysis: Comparing Mumbai and Delhi
+
+To investigate regional differences in hotel metrics, we selected Mumbai and Delhi — two cities with more than 100 hotels each. We compared their Average Room Prices and Overall Ratings using Welch’s t-tests and 95% confidence intervals.
+
+1. Average Room Price Comparison - 
+
+Mumbai hotels have a higher mean room price (₹4447.60) than Delhi (₹3353.74).
+
+The Welch Two-Sample t-test yielded:
+
+t = 5.07, p-value = 5.13 × 10⁻⁷ (highly significant)
+
+95% Confidence Interval: [₹670.15, ₹1517.57] which does not include 0.
+
+There is strong statistical evidence that Mumbai hotels are significantly more expensive than those in Delhi.
+
+2. Overall Rating Comparison - 
+
+Interestingly, Delhi hotels have a higher average rating (7.31) than Mumbai (6.78).
+
+The Welch t-test results:
+
+t = -6.50, p-value = 1.62 × 10⁻¹⁰ (highly significant)
+
+95% Confidence Interval: [-0.695, -0.373] also excludes 0.
+
+There is strong statistical evidence that Delhi hotels receive significantly higher overall ratings compared to Mumbai.
+
+Overall, this analysis suggests that:
+
+Mumbai hotels charge higher prices, but Delhi hotels are rated better by customers.
+
+These findings are statistically significant and unlikely to be due to random variation. They highlight meaningful differences in the hotel offerings between the two cities.
+
+
+-------
+
+5. ANOVA: Does Average Room Price depend on whether the city is a Metro or Non-Metro or how far the hotel is from the city-center?  Is there interaction effect to be concerned about?  Present your results and discuss your findings.
+
+```{r}
+# Load required library
+library(ggplot2)
+
+# Convert necessary variables to factors
+hotel_data$Metro <- as.factor(hotel_data$Metro)
+hotel_data$`Categorized Dist from Centre` <- as.factor(hotel_data$`Categorized Dist from Centre`)
+
+# Fit ANOVA model with interaction
+anova_model <- aov(`Average Room Price` ~ Metro * `Categorized Dist from Centre`, data = hotel_data)
+
+# Summary of ANOVA model
+summary(anova_model)
+
+# Plot interaction
+interaction.plot(hotel_data$`Categorized Dist from Centre`, hotel_data$Metro,
+                 hotel_data$`Average Room Price`,
+                 col = c("blue", "red"), lwd = 2,
+                 trace.label = "Metro",
+                 xlab = "Distance from Centre", ylab = "Avg Room Price",
+                 main = "Interaction Plot: Metro vs. Distance from Centre")
+```
+
+##Answer 5: Impact of Metro & Distance on Room Price
+
+A two-way ANOVA showed that:
+
+	- Metro status significantly affects average room price (p = 0.0395).
+	
+	- Distance from city centre has a marginal effect (p = 0.0544).
+	
+	- Interaction between Metro and Distance is highly significant (p < 0.001), meaning the impact of distance on price depends on whether the hotel is in a metro.
+
+The interaction plot shows metro hotels charge much higher near the city center, while non-metro hotels show a different pattern. Thus, pricing depends on both location type and proximity.
+
+------
+
+6. Regression Modeling: Use the explanatory variables of Overall Rating, Location Rating, Value for Money Rating, and Comfort Rating, to predict Average Room Price. Obtain a “best” predictive model.  Report on your procedure for obtaining this model.   Present your results and discuss your findings.
+
+```{r}
+
+# Load packages
+# loading MASS skipped as it’s causing issues
+library(car)
+
+# MASS is already available because it's loaded by other packages like gmodels
+
+# Subset relevant columns
+model_data <- hotel_data[, c("Average Room Price", "Overall Rating", "Location", "Value for Money", "Comfort")]
+
+# Remove rows with missing values
+model_data <- na.omit(model_data)
+
+# Rename columns to syntactically safe names
+colnames(model_data) <- make.names(colnames(model_data))
+
+# Fit the full model
+full_model <- lm(Average.Room.Price ~ Overall.Rating + Location + Value.for.Money + Comfort, data = model_data)
+
+# Check multicollinearity
+vif(full_model)
+
+# Call stepAIC using :: without loading MASS
+best_model <- MASS::stepAIC(full_model, direction = "both", trace = FALSE)
+
+# Print summary
+summary(best_model)
+
+# Diagnostic plots
+par(mfrow = c(2, 2))
+plot(best_model)
+
+
+```
+
+
+
+
+
+##Answer 6: Regression Modeling Findings: Predicting Average Room Price
+
+To predict Average Room Price, I built a multiple linear regression model using four explanatory variables: Overall Rating, Location Rating, Value for Money Rating, and Comfort Rating. The procedure involved the following steps:
+
+Data Preparation: I selected relevant variables and removed missing values. Column names were renamed to R-friendly formats.
+
+Model Fitting: A full model was fitted using lm() with all four variables.
+
+Multicollinearity Check: VIF values were below the common threshold of 10 for all variables, indicating no serious multicollinearity concerns.
+
+Model Selection: The stepAIC() function from the MASS package was used for stepwise selection based on AIC. All variables were retained in the final model.
+
+Model Summary & Interpretation:
+Value for Money had the strongest negative association with room price (β = -3933.01), suggesting hotels offering better value tend to charge lower prices.
+
+Estimated coefficient(Beta) for Comfort ( 3411.39), Overall Rating (746.88), and Location ( 548.85) were positively associated with price, as expected—higher ratings in these areas justify higher pricing.
+
+All predictors were statistically significant (p < 0.001).
+
+The Adjusted R squared was 0.3469, indicating that about 35% of the variability in room price is explained by the model—moderate explanatory power.
+
+Model Diagnostics:
+Residual vs Fitted Plot: Mild curvature suggests minor non-linearity.
+
+Q-Q Plot: Heavy tails indicate deviation from normality, especially at the extremes.
+
+Scale-Location Plot: Some heteroscedasticity is present (non-constant variance), especially in high-value predictions.
+
+Residuals vs Leverage Plot: A few influential points (e.g., observation 1048), but overall leverage is low.
+
+Conclusion:
+
+The model effectively captures the key drivers of average hotel pricing, with Value for Money and Comfort emerging as the most influential factors. While some model assumptions (like normality and homoscedasticity) show minor deviations, the model still provides meaningful insights and can be considered a reasonably good predictive tool for business decisions or price optimization.
+
