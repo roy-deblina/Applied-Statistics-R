@@ -1,4 +1,4 @@
-#Data Analysis Project
+# Data Analysis Project
 
 This repository contains my final exam project for the R programming and statistical analysis course. The exam consists of five sections covering vector operations, user-defined functions, data visualization, and distribution analysis using base R. Each section demonstrates practical application of statistical methods on synthetic and real datasets.
 
